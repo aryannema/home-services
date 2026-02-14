@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Provider • Home Services</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar__inner">
+        <a class="brand brand--link" href="index.html" aria-label="Go to home">
+          <div class="brand__logo">HS</div>
+          <div>
+            <div class="brand__name">Home Services</div>
+            <div class="brand__tag">Provider</div>
+          </div>
+        </a>
+
+        <div class="topActions">
+          <div class="pill" id="providerNamePill">Provider: —</div>
+          <button class="btn btn--small" id="editProviderBtn">Edit name</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <div class="pageHeader">
+        <div>
+          <h2 class="pageTitle">Browse jobs & send quotes</h2>
+          <p class="muted">
+            Pick an open job, send an offer, and track its status.
+          </p>
+        </div>
+        <div class="pageHeader__right">
+          <button class="btn btn--ghost" id="refreshBtn">Refresh</button>
+        </div>
+      </div>
+
+      <section class="grid2">
+        <!-- Open Jobs -->
+        <div class="card">
+          <div class="card__title">Open Jobs</div>
+
+          <div class="row2" style="margin-top: 10px">
+            <div class="field" style="margin: 0">
+              <label>Filter by category</label>
+              <select id="filterCategory">
+                <option value="">All</option>
+                <option>Plumber</option>
+                <option>Electrician</option>
+                <option>Tutor</option>
+              </select>
+            </div>
+            <div class="field" style="margin: 0">
+              <label>Search location</label>
+              <input id="filterLocation" placeholder="e.g., Vellore" />
+            </div>
+          </div>
+
+          <div id="openJobsList" class="list" style="margin-top: 10px"></div>
+        </div>
+
+        <!-- Send Offer -->
+        <div class="card">
+          <div class="card__title">Send a Quote</div>
+          <div id="offerEmpty" class="empty">
+            Select a job from the left to send an offer.
+          </div>
+
+          <div id="offerPanel" class="hidden">
+            <div class="jobHeader">
+              <div>
+                <div class="jobTitle" id="oTitle">—</div>
+                <div class="muted" id="oMeta">—</div>
+              </div>
+              <div class="statusPill" id="oStatus">Open</div>
+            </div>
+
+            <div class="descBox" id="oDesc">—</div>
+
+            <form id="offerForm" class="form" style="margin-top: 12px">
+              <div class="row2">
+                <div class="field">
+                  <label>Price (₹)</label>
+                  <input
+                    id="price"
+                    type="number"
+                    min="1"
+                    placeholder="e.g., 499"
+                    required
+                  />
+                </div>
+                <div class="field">
+                  <label>ETA</label>
+                  <input
+                    id="eta"
+                    type="text"
+                    placeholder="e.g., Today 6 PM / 2 hours"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Message</label>
+                <textarea
+                  id="message"
+                  rows="3"
+                  placeholder="Short note about what you will do…"
+                  required
+                ></textarea>
+              </div>
+
+              <button class="btn btn--primary" type="submit">Send Offer</button>
+              <button class="btn btn--ghost" type="button" id="closeOfferBtn">
+                Close
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- My Offers -->
+      <section class="card" style="margin-top: 16px">
+        <div class="card__title">My Offers</div>
+        <div class="muted tiny">
+          Shows all offers sent by your provider profile (stored locally).
+        </div>
+        <div id="myOffersList" class="list" style="margin-top: 10px"></div>
+      </section>
+
+      <footer class="footer muted">
+        Provider demo • Browse jobs + send quotes + offer status
+      </footer>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+      const state = { selectedJobId: null };
+
+      function renderProviderName() {
+        const name = HS.getProviderName();
+        document.getElementById("providerNamePill").textContent =
+          `Provider: ${name}`;
+      }
+
+      function renderOpenJobs() {
+        const cat = document.getElementById("filterCategory").value;
+        const loc = document
+          .getElementById("filterLocation")
+          .value.trim()
+          .toLowerCase();
+
+        const jobs = HS.getJobs()
+          .filter((j) => j.status === "Open")
+          .filter((j) => !cat || j.category === cat)
+          .filter((j) => !loc || (j.location || "").toLowerCase().includes(loc))
+          .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+
+        const el = document.getElementById("openJobsList");
+        if (jobs.length === 0) {
+          el.innerHTML = `<div class="empty">No matching open jobs right now.</div>`;
+          return;
+        }
+
+        el.innerHTML = jobs
+          .map((j) => {
+            const offersCount = HS.getOffersForJob(j.id).length;
+            return `
+          <button class="listItem" data-id="${j.id}">
+            <div class="listItem__top">
+              <div class="listItem__title">${HS.escape(j.title)}</div>
+              <div class="badge neutral">${HS.escape(j.category)}</div>
+            </div>
+            <div class="listItem__meta muted">
+              ${HS.escape(j.location)} • Preferred: ${HS.prettyDate(j.date)}
+              ${j.budget ? `• Budget: ₹${j.budget}` : ""} • Offers: ${offersCount}
+            </div>
+          </button>
+        `;
+          })
+          .join("");
+
+        el.querySelectorAll(".listItem").forEach((btn) => {
+          btn.addEventListener("click", () => openOfferPanel(btn.dataset.id));
+        });
+      }
+
+      function renderOfferPanel(jobId) {
+        const job = HS.getJob(jobId);
+        if (!job) return;
+
+        document.getElementById("offerEmpty").classList.add("hidden");
+        document.getElementById("offerPanel").classList.remove("hidden");
+
+        document.getElementById("oTitle").textContent = job.title;
+        document.getElementById("oMeta").textContent =
+          `${job.category} • ${job.location} • Preferred: ${HS.prettyDate(job.date)} ${job.budget ? `• Budget: ₹${job.budget}` : ""}`;
+
+        const statusEl = document.getElementById("oStatus");
+        statusEl.textContent = job.status;
+        statusEl.className = `statusPill ${HS.statusClass(job.status)}`;
+
+        document.getElementById("oDesc").textContent = job.description;
+
+        // If job is not open, disable submit
+        const submitBtn = document.querySelector(
+          "#offerForm button[type='submit']",
+        );
+        submitBtn.disabled = job.status !== "Open";
+        submitBtn.textContent =
+          job.status === "Open" ? "Send Offer" : "Job not open";
+      }
+
+      function openOfferPanel(jobId) {
+        state.selectedJobId = jobId;
+        renderOfferPanel(jobId);
+        document
+          .getElementById("offerPanel")
+          .scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      function closeOfferPanel() {
+        state.selectedJobId = null;
+        document.getElementById("offerPanel").classList.add("hidden");
+        document.getElementById("offerEmpty").classList.remove("hidden");
+        document.getElementById("offerForm").reset();
+      }
+
+      function renderMyOffers() {
+        const name = HS.getProviderName();
+        const offers = HS.getOffers()
+          .filter((o) => o.providerName === name)
+          .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+
+        const el = document.getElementById("myOffersList");
+        if (offers.length === 0) {
+          el.innerHTML = `<div class="empty">No offers sent yet. Select an open job and send a quote.</div>`;
+          return;
+        }
+
+        el.innerHTML = offers
+          .map((o) => {
+            const job = HS.getJob(o.jobId);
+            const badge =
+              o.status === "Accepted"
+                ? "badge ok"
+                : o.status === "Rejected"
+                  ? "badge danger"
+                  : "badge neutral";
+            const jobLine = job
+              ? `${HS.escape(job.title)} • ${HS.escape(job.location)} • ${HS.escape(job.category)}`
+              : "Job (deleted)";
+            return `
+          <div class="cardLite">
+            <div class="rowBetween">
+              <div>
+                <div class="listItem__title">${jobLine}</div>
+                <div class="muted tiny">${HS.escape(o.message || "")}</div>
+              </div>
+              <div style="text-align:right;">
+                <div class="price">₹${o.price}</div>
+                <div class="${badge}">${o.status}</div>
+              </div>
+            </div>
+            <div class="muted tiny" style="margin-top:10px;">ETA: ${HS.escape(o.eta || "—")}</div>
+          </div>
+        `;
+          })
+          .join("");
+      }
+
+      // Init
+      HS.ensureDefaults();
+      renderProviderName();
+      renderOpenJobs();
+      renderMyOffers();
+
+      // Filters
+      document
+        .getElementById("filterCategory")
+        .addEventListener("change", renderOpenJobs);
+      document
+        .getElementById("filterLocation")
+        .addEventListener("input", renderOpenJobs);
+
+      // Refresh
+      document.getElementById("refreshBtn").addEventListener("click", () => {
+        renderProviderName();
+        renderOpenJobs();
+        renderMyOffers();
+        if (state.selectedJobId) renderOfferPanel(state.selectedJobId);
+      });
+
+      // Offer submit
+      document.getElementById("offerForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (!state.selectedJobId) return;
+
+        const job = HS.getJob(state.selectedJobId);
+        if (!job || job.status !== "Open") {
+          alert("This job is not open right now.");
+          return;
+        }
+
+        const offer = {
+          jobId: state.selectedJobId,
+          providerName: HS.getProviderName(),
+          price: Number(document.getElementById("price").value),
+          eta: document.getElementById("eta").value.trim(),
+          message: document.getElementById("message").value.trim(),
+        };
+
+        const result = HS.createOffer(offer);
+        if (!result.ok) {
+          alert(result.message);
+          return;
+        }
+
+        e.target.reset();
+        renderOpenJobs();
+        renderMyOffers();
+        alert("Offer sent ✅");
+      });
+
+      document
+        .getElementById("closeOfferBtn")
+        .addEventListener("click", closeOfferPanel);
+
+      document
+        .getElementById("editProviderBtn")
+        .addEventListener("click", () => {
+          const current = HS.getProviderName();
+          const name = prompt("Provider name:", current);
+          if (!name || !name.trim()) return;
+          HS.setProviderName(name.trim());
+          renderProviderName();
+          renderMyOffers();
+        });
+    </script>
+  </body>
+</html>
