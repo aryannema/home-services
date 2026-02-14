@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Customer • Home Services</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar__inner">
+        <a class="brand brand--link" href="index.html" aria-label="Go to home">
+          <div class="brand__logo">HS</div>
+          <div>
+            <div class="brand__name">Home Services</div>
+            <div class="brand__tag">Customer</div>
+          </div>
+        </a>
+
+        <div class="topActions">
+          <div class="pill" id="customerNamePill">Customer: —</div>
+          <button class="btn btn--small" id="editNameBtn">Edit name</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <div class="pageHeader">
+        <div>
+          <h2 class="pageTitle">Post a request & compare quotes</h2>
+          <p class="muted">
+            Create a job post. Providers will send offers. Accept one to confirm
+            booking.
+          </p>
+        </div>
+        <div class="pageHeader__right">
+          <button class="btn btn--ghost" id="refreshBtn">Refresh</button>
+        </div>
+      </div>
+
+      <section class="grid2">
+        <!-- Post Job -->
+        <div class="card">
+          <div class="card__title">Create a Job Post</div>
+          <form id="jobForm" class="form">
+            <div class="row2">
+              <div class="field">
+                <label>Category</label>
+                <select id="category" required>
+                  <option value="">Select…</option>
+                  <option>Plumber</option>
+                  <option>Electrician</option>
+                  <option>Tutor</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Budget (₹)</label>
+                <input
+                  id="budget"
+                  type="number"
+                  min="0"
+                  placeholder="Optional"
+                />
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Title</label>
+              <input
+                id="title"
+                type="text"
+                placeholder="e.g., Fix kitchen sink leak"
+                required
+              />
+            </div>
+
+            <div class="field">
+              <label>Description</label>
+              <textarea
+                id="description"
+                rows="4"
+                placeholder="What needs to be done? Include details…"
+                required
+              ></textarea>
+            </div>
+
+            <div class="row2">
+              <div class="field">
+                <label>Location</label>
+                <input
+                  id="location"
+                  type="text"
+                  placeholder="e.g., Vellore"
+                  required
+                />
+              </div>
+              <div class="field">
+                <label>Preferred Date</label>
+                <input id="date" type="date" required />
+              </div>
+            </div>
+
+            <button class="btn btn--primary" type="submit">Post Job</button>
+            <p class="muted tiny">
+              Stored in your browser (localStorage). No login required for this
+              demo.
+            </p>
+          </form>
+        </div>
+
+        <!-- My Jobs -->
+        <div class="card">
+          <div class="card__title">My Requests</div>
+          <div class="muted tiny">
+            Click a job to view offers and accept a quote.
+          </div>
+
+          <div id="jobsList" class="list"></div>
+
+          <div class="divider"></div>
+          <div class="row2">
+            <button class="btn btn--small" id="seedBtn">
+              Seed sample jobs
+            </button>
+            <button class="btn btn--small btn--danger" id="clearBtn">
+              Clear jobs/offers
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Job Details / Offers -->
+      <section class="card" style="margin-top: 16px">
+        <div class="card__title">Job Details & Offers</div>
+
+        <div id="jobDetailsEmpty" class="empty">
+          Select a job from “My Requests” to see details and offers here.
+        </div>
+
+        <div id="jobDetails" class="hidden">
+          <div class="jobHeader">
+            <div>
+              <div class="jobTitle" id="dTitle">—</div>
+              <div class="muted" id="dMeta">—</div>
+            </div>
+            <div class="statusPill" id="dStatus">Open</div>
+          </div>
+
+          <div class="descBox" id="dDesc">—</div>
+
+          <div class="divider"></div>
+
+          <div class="sectionTitle">Offers</div>
+          <div id="offersList" class="list"></div>
+
+          <div class="divider"></div>
+
+          <div class="row2">
+            <button class="btn btn--small" id="markCompletedBtn">
+              Mark as Completed
+            </button>
+            <button class="btn btn--small btn--ghost" id="closeDetailsBtn">
+              Close
+            </button>
+          </div>
+
+          <!-- Review area (simple demo) -->
+          <div id="reviewBox" class="reviewBox hidden">
+            <div class="sectionTitle">Leave a Review (Demo)</div>
+            <div class="row2">
+              <div class="field">
+                <label>Rating</label>
+                <select id="rating">
+                  <option>5</option>
+                  <option>4</option>
+                  <option>3</option>
+                  <option>2</option>
+                  <option>1</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Comment</label>
+                <input id="reviewText" placeholder="Quick feedback…" />
+              </div>
+            </div>
+            <button class="btn btn--primary btn--small" id="submitReviewBtn">
+              Submit Review
+            </button>
+            <div class="muted tiny" id="reviewHint"></div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer muted">
+        Customer demo • Jobs + offers + booking confirmation
+      </footer>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+      const state = { selectedJobId: null };
+
+      function renderCustomerName() {
+        const name = HS.getCustomerName();
+        document.getElementById("customerNamePill").textContent =
+          `Customer: ${name}`;
+      }
+
+      function renderJobs() {
+        const list = document.getElementById("jobsList");
+        const jobs = HS.getJobs().filter(
+          (j) => j.customerName === HS.getCustomerName(),
+        );
+
+        if (jobs.length === 0) {
+          list.innerHTML = `<div class="empty">No jobs yet. Post one on the left.</div>`;
+          return;
+        }
+
+        list.innerHTML = jobs
+          .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+          .map((job) => {
+            const offersCount = HS.getOffersForJob(job.id).length;
+            const statusClass = HS.statusClass(job.status);
+            return `
+            <button class="listItem" data-id="${job.id}">
+              <div class="listItem__top">
+                <div class="listItem__title">${HS.escape(job.title)}</div>
+                <div class="badge ${statusClass}">${job.status}</div>
+              </div>
+              <div class="listItem__meta muted">
+                ${HS.escape(job.category)} • ${HS.escape(job.location)} • Offers: ${offersCount}
+                ${job.budget ? `• Budget: ₹${job.budget}` : ""}
+              </div>
+            </button>
+          `;
+          })
+          .join("");
+
+        list.querySelectorAll(".listItem").forEach((btn) => {
+          btn.addEventListener("click", () => openJob(btn.dataset.id));
+        });
+      }
+
+      function renderJobDetails(jobId) {
+        const job = HS.getJob(jobId);
+        if (!job) return;
+
+        document.getElementById("jobDetailsEmpty").classList.add("hidden");
+        document.getElementById("jobDetails").classList.remove("hidden");
+
+        document.getElementById("dTitle").textContent = job.title;
+        document.getElementById("dMeta").textContent =
+          `${job.category} • ${job.location} • Preferred: ${HS.prettyDate(job.date)} ${job.budget ? `• Budget: ₹${job.budget}` : ""}`;
+
+        const statusEl = document.getElementById("dStatus");
+        statusEl.textContent = job.status;
+        statusEl.className = `statusPill ${HS.statusClass(job.status)}`;
+
+        document.getElementById("dDesc").textContent = job.description;
+
+        // Offers
+        const offersEl = document.getElementById("offersList");
+        const offers = HS.getOffersForJob(jobId).sort((a, b) =>
+          a.createdAt < b.createdAt ? 1 : -1,
+        );
+
+        if (offers.length === 0) {
+          offersEl.innerHTML = `<div class="empty">No offers yet. Ask a friend to open Provider page and send an offer 🙂</div>`;
+        } else {
+          offersEl.innerHTML = offers
+            .map((of) => {
+              const badge =
+                of.status === "Accepted"
+                  ? "badge ok"
+                  : of.status === "Rejected"
+                    ? "badge danger"
+                    : "badge neutral";
+              const disabled = job.status !== "Open" ? "disabled" : "";
+              return `
+            <div class="cardLite">
+              <div class="rowBetween">
+                <div>
+                  <div class="listItem__title">${HS.escape(of.providerName)}</div>
+                  <div class="muted tiny">${HS.escape(of.message || "")}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div class="price">₹${of.price}</div>
+                  <div class="${badge}">${of.status}</div>
+                </div>
+              </div>
+              <div class="divider"></div>
+              <div class="rowBetween">
+                <div class="muted tiny">ETA: ${HS.escape(of.eta || "—")}</div>
+                <button class="btn btn--small btn--primary" data-accept="${of.id}" ${disabled}>
+                  Accept Offer
+                </button>
+              </div>
+            </div>
+          `;
+            })
+            .join("");
+
+          offersEl.querySelectorAll("[data-accept]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const offerId = btn.getAttribute("data-accept");
+              HS.acceptOffer(jobId, offerId);
+              renderJobs();
+              renderJobDetails(jobId);
+              alert("Booking confirmed ✅");
+            });
+          });
+        }
+
+        // Review visibility
+        const reviewBox = document.getElementById("reviewBox");
+        const reviewHint = document.getElementById("reviewHint");
+        if (job.status === "Completed" && job.acceptedOfferId) {
+          reviewBox.classList.remove("hidden");
+          const accepted = HS.getOffer(job.acceptedOfferId);
+          reviewHint.textContent = accepted
+            ? `Reviewing: ${accepted.providerName} (offer ₹${accepted.price})`
+            : "";
+        } else {
+          reviewBox.classList.add("hidden");
+          reviewHint.textContent = "";
+        }
+      }
+
+      function openJob(jobId) {
+        state.selectedJobId = jobId;
+        renderJobDetails(jobId);
+        document
+          .getElementById("jobDetails")
+          .scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      // Init
+      HS.ensureDefaults();
+      renderCustomerName();
+      renderJobs();
+
+      // Form submit
+      document.getElementById("jobForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const job = {
+          category: document.getElementById("category").value,
+          title: document.getElementById("title").value.trim(),
+          description: document.getElementById("description").value.trim(),
+          location: document.getElementById("location").value.trim(),
+          date: document.getElementById("date").value,
+          budget: Number(document.getElementById("budget").value || 0) || null,
+        };
+
+        const result = HS.createJob(job);
+        if (!result.ok) {
+          alert(result.message);
+          return;
+        }
+
+        e.target.reset();
+        renderJobs();
+        openJob(result.jobId);
+      });
+
+      // Buttons
+      document.getElementById("refreshBtn").addEventListener("click", () => {
+        renderCustomerName();
+        renderJobs();
+        if (state.selectedJobId) renderJobDetails(state.selectedJobId);
+      });
+
+      document
+        .getElementById("closeDetailsBtn")
+        .addEventListener("click", () => {
+          state.selectedJobId = null;
+          document.getElementById("jobDetails").classList.add("hidden");
+          document.getElementById("jobDetailsEmpty").classList.remove("hidden");
+        });
+
+      document.getElementById("seedBtn").addEventListener("click", () => {
+        HS.seedSampleData();
+        renderJobs();
+        alert("Sample jobs added ✅");
+      });
+
+      document.getElementById("clearBtn").addEventListener("click", () => {
+        if (!confirm("Clear jobs and offers?")) return;
+        HS.resetAll();
+        renderCustomerName();
+        renderJobs();
+        document.getElementById("jobDetails").classList.add("hidden");
+        document.getElementById("jobDetailsEmpty").classList.remove("hidden");
+      });
+
+      document.getElementById("editNameBtn").addEventListener("click", () => {
+        const current = HS.getCustomerName();
+        const name = prompt("Customer name:", current);
+        if (!name || !name.trim()) return;
+        HS.setCustomerName(name.trim());
+        renderCustomerName();
+        renderJobs();
+      });
+
+      document
+        .getElementById("markCompletedBtn")
+        .addEventListener("click", () => {
+          if (!state.selectedJobId) return;
+          const job = HS.getJob(state.selectedJobId);
+          if (!job) return;
+
+          if (job.status !== "Booked") {
+            alert("You can mark completed only after booking is confirmed.");
+            return;
+          }
+
+          HS.updateJobStatus(state.selectedJobId, "Completed");
+          renderJobs();
+          renderJobDetails(state.selectedJobId);
+          alert("Job marked as Completed ✅ Now you can leave a review.");
+        });
+
+      document
+        .getElementById("submitReviewBtn")
+        .addEventListener("click", () => {
+          if (!state.selectedJobId) return;
+          const job = HS.getJob(state.selectedJobId);
+          if (!job || !job.acceptedOfferId) return;
+
+          const accepted = HS.getOffer(job.acceptedOfferId);
+          if (!accepted) return;
+
+          const rating = Number(document.getElementById("rating").value);
+          const comment = document.getElementById("reviewText").value.trim();
+
+          HS.createReview({
+            providerName: accepted.providerName,
+            customerName: HS.getCustomerName(),
+            jobId: job.id,
+            rating,
+            comment,
+          });
+
+          document.getElementById("reviewText").value = "";
+          alert("Review submitted ✅ (stored locally)");
+        });
+    </script>
+  </body>
+</html>
