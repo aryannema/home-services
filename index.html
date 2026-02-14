@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home Services Marketplace</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar__inner">
+        <div class="brand">
+          <div class="brand__logo">HS</div>
+          <div>
+            <div class="brand__name">Home Services</div>
+            <div class="brand__tag">Plumbers • Electricians • Tutors</div>
+          </div>
+        </div>
+
+        <div class="pill">Demo • HTML/CSS/JS</div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="hero card">
+        <div class="hero__left">
+          <h1>Find the right help, fast.</h1>
+          <p class="muted">
+            Post a service request, receive quotes, confirm a booking, and leave
+            reviews. This demo stores data locally in your browser.
+          </p>
+
+          <div class="roleGrid">
+            <button class="btn btn--primary" id="goCustomer">
+              Continue as Customer
+              <span class="btn__sub"
+                >Post requests • Accept quotes • Reviews</span
+              >
+            </button>
+
+            <button class="btn btn--ghost" id="goProvider">
+              Continue as Provider
+              <span class="btn__sub"
+                >Browse jobs • Send quotes • Track status</span
+              >
+            </button>
+          </div>
+
+          <div class="note">
+            <div class="note__title">Tip</div>
+            <div class="note__text">
+              Open both Customer and Provider pages in two tabs to simulate real
+              interactions.
+            </div>
+          </div>
+        </div>
+
+        <div class="hero__right">
+          <div class="statCard">
+            <div class="statCard__title">What you can demo</div>
+            <ul class="checklist">
+              <li>Two roles (Customer / Provider)</li>
+              <li>Job posts + offers/quotes</li>
+              <li>Booking confirmation (accept offer)</li>
+              <li>Offer status (pending/accepted/rejected)</li>
+            </ul>
+            <div class="divider"></div>
+            <button class="btn btn--small" id="seedData">
+              Seed sample data
+            </button>
+            <button class="btn btn--small btn--danger" id="resetData">
+              Reset demo data
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer muted">
+        Built for a Web Programming class demo • Uses localStorage (no backend)
+      </footer>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+      document.getElementById("goCustomer").addEventListener("click", () => {
+        localStorage.setItem("hs_role", "customer");
+        window.location.href = "customer.html";
+      });
+
+      document.getElementById("goProvider").addEventListener("click", () => {
+        localStorage.setItem("hs_role", "provider");
+        window.location.href = "provider.html";
+      });
+
+      document.getElementById("seedData").addEventListener("click", () => {
+        HS.seedSampleData();
+        alert(
+          "Sample data added ✅\nNow open Customer/Provider pages and interact.",
+        );
+      });
+
+      document.getElementById("resetData").addEventListener("click", () => {
+        if (
+          !confirm(
+            "This will clear jobs/offers and demo profile names. Continue?",
+          )
+        )
+          return;
+        HS.resetAll();
+        alert("Data cleared ✅");
+      });
+    </script>
+  </body>
+</html>
