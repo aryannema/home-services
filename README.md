@@ -43,9 +43,34 @@ home-services/
 - **Vite** for bundling
 - **React Router** for SPA navigation
 - **react-icons** (Heroicons v2) for icons
-- **pnpm** as package manager
+
+## Prerequisites
+
+- **Node.js** (v18 or higher) — [Download here](https://nodejs.org/)
+- A package manager: **pnpm** (recommended) or **npm** (comes with Node.js)
+
+### Installing pnpm (if you don't have it)
+
+```bash
+npm install -g pnpm
+```
+
+Verify installation:
+
+```bash
+pnpm --version
+```
 
 ## Getting Started
+
+### Clone the repository
+
+```bash
+git clone https://github.com/aryannema/home-services.git
+cd home-services
+```
+
+### Setup with pnpm (recommended)
 
 ```bash
 cd current
@@ -53,13 +78,40 @@ pnpm install
 pnpm dev
 ```
 
-The dev server starts at `http://localhost:5173/`.
-
-To build for production:
+### Setup with npm
 
 ```bash
-pnpm build
+cd current
+npm install
+npm run dev
 ```
+
+The dev server starts at `http://localhost:5173/`.
+
+## Building for Production
+
+### With pnpm
+
+```bash
+cd current
+pnpm build
+pnpm preview    # preview the production build locally
+```
+
+### With npm
+
+```bash
+cd current
+npm run build
+npm run preview    # preview the production build locally
+```
+
+The production files are output to `current/dist/`.
+
+## Live Demo
+
+The React app is deployed via GitHub Pages at:
+**https://aryannema.github.io/home-services/**
 
 ## Demo Tip
 
